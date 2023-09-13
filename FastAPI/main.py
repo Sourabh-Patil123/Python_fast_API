@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 app = FastAPI()
-user = {1:{"name":"sourabh","language":"python"}}
+user = {1:{"name":"ATUL","language":"python"}}
 @app.get("/{id}")
 def root(id: int):
     data = user[id]
