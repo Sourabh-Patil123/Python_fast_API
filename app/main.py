@@ -1,11 +1,17 @@
 from typing import Optional
 from random import randrange
-from fastapi import FastAPI, Response, status, HTTPException
+from fastapi import FastAPI, Response, status, HTTPException, Depends
 from fastapi.params import Body
 from pydantic import BaseModel
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from sqlalchemy.orm import Session
 import time
+from . import models
+from .database import engine, SessionLocal, get_db
+
+
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
@@ -78,7 +84,7 @@ def create_post_2(new_post: Post):
     return {"data": new_post}
 
 
-@app.post("/create_post_3")
+@app.post("/create_post_3/postPevice")
 def create_post_3(post: Post):
     # post_dict = post.dict() post_dict['id'] = randrange(0, 100000) my_post.append(post_dict) cursor.execute(
     # f"INSERT INTO posts(title, content, published) VALUES({post.title}, {post.content}, {post.published})")
@@ -106,6 +112,10 @@ def getdata():
 def get_latest_post():
     post = my_post[len(my_post) - 1]
     return {"Details": post}
+
+@app.get("/sqlAlchemy")
+def test_post(db: Session = Depends(get_db)):
+    return {"status":"Success"}
 
 
 @app.get("/post/{id}")
@@ -154,3 +164,6 @@ def update_post(id: int, post: Post):
     # post_dict['id'] = id
     # my_post[index] = post_dict
     return {"data": updated_post}
+
+
+
