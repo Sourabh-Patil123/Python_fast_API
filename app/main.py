@@ -8,10 +8,11 @@ from psycopg2.extras import RealDictCursor
 from sqlalchemy.orm import Session
 import time
 from . import models
-from .database import engine, SessionLocal, get_db
+from .database import engine,SessionLocal , get_db
 
 
 models.Base.metadata.create_all(bind=engine)
+
 
 app = FastAPI()
 
@@ -84,7 +85,7 @@ def create_post_2(new_post: Post):
     return {"data": new_post}
 
 
-@app.post("/create_post_3/postPevice")
+@app.post("/create_post_3")
 def create_post_3(post: Post):
     # post_dict = post.dict() post_dict['id'] = randrange(0, 100000) my_post.append(post_dict) cursor.execute(
     # f"INSERT INTO posts(title, content, published) VALUES({post.title}, {post.content}, {post.published})")
@@ -116,6 +117,7 @@ def get_latest_post():
 @app.get("/sqlAlchemy")
 def test_post(db: Session = Depends(get_db)):
     return {"status":"Success"}
+
 
 
 @app.get("/post/{id}")
