@@ -116,7 +116,9 @@ def get_latest_post():
 
 @app.get("/sqlAlchemy")
 def test_post(db: Session = Depends(get_db)):
-    return {"status":"Success"}
+    post = db.query(models.Post).all()
+
+    return {"data": post}
 
 
 
