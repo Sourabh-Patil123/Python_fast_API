@@ -1,40 +1,34 @@
-from typing import Optional
+from typing import Optional, List
 from random import randrange
-from fastapi import FastAPI, Response, status, HTTPException, Depends
+from fastapi import FastAPI, Response, status, HTTPException, Depends, APIRouter
 from fastapi.params import Body
 from pydantic import BaseModel
+from pydantic.main import BaseModel
+# from passlib.context import CryptContext
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from sqlalchemy.orm import Session
 import time
-from . import models
-from .database import engine,SessionLocal , get_db
+from . import models, schemas, utils
+from .database import engine
+from .routers import post, user, auth
 
-
+# pwd_context = CryptContext(schemes=["bcrypt"],deprecated="auto")
 models.Base.metadata.create_all(bind=engine)
-
 
 app = FastAPI()
 
-
-class Post(BaseModel):
-    title: str
-    content: str
-    published: bool = True
-    rating: Optional[int] = None
-
-
-while True:
-    try:
-        conn = psycopg2.connect(host='localhost', database='fastapi', user='postgres',
-                                password='Token@1234', cursor_factory=RealDictCursor)
-        cursor = conn.cursor()
-        print("Database connection was successfull!")
-        break
-    except Exception as error:
-        print("Connecting to database is failed")
-        print("Error :", error)
-        time.sleep(3)
+# while True:
+#     try:
+#         conn = psycopg2.connect(host='localhost', database='fastapi', user='postgres',
+#                                 password='Token@1234', cursor_factory=RealDictCursor)
+#         cursor = conn.cursor()
+#         print("Database connection was successfull!")
+#         break
+#     except Exception as error:
+#         print("Connecting to database is failed")
+#         print("Error :", error)
+#         time.sleep(3)
 
 my_post = [{"title": "title odf post 1", "content": "content of post 1", "id": 1},
            {"title": "favorite food", "content": "I like Pizza", "id": 2}]
@@ -51,6 +45,10 @@ def find_index_post(id):
         if p["id"] == id:
             return i
 
+
+app.include_router(post.router)
+app.include_router(user.router)
+app.include_router(auth.router)
 
 # user = {1:{"name":"sourabh","language":"python"}}
 #
@@ -71,103 +69,3 @@ def find_index_post(id):
 #     user[id]=data
 #     print(user)
 #     return data
-
-@app.post("/createposts")
-def create_post(payload: dict = Body(...)):
-    print(payload)
-    return {"new_post": f"title:{payload['title']} content:{payload['content']}"}
-
-
-@app.post("/createpost2")
-def create_post_2(new_post: Post):
-    print(new_post.title, new_post.content, new_post.rating, new_post.published)
-    print(new_post.dict())
-    return {"data": new_post}
-
-
-@app.post("/create_post_3")
-def create_post_3(post: Post):
-    # post_dict = post.dict() post_dict['id'] = randrange(0, 100000) my_post.append(post_dict) cursor.execute(
-    # f"INSERT INTO posts(title, content, published) VALUES({post.title}, {post.content}, {post.published})")
-    cursor.execute("""INSERT INTO posts (title, content, published) VALUES(%s, %s, %s) RETURNING * """,
-                   (post.title, post.content, post.published))
-    New_posts = cursor.fetchone()
-    conn.commit()
-    print(New_posts)
-    return {"data": New_posts}
-
-
-# @app.get("/post")
-# def getdata():
-#     return {"data": my_post}
-
-# this get api is connected with database get th data form database
-@app.get("/post")
-def getdata():
-    cursor.execute(""" SELECT * FROM posts """)
-    posts = cursor.fetchall()
-    return {"data": posts}
-
-
-@app.get("/post/latest")
-def get_latest_post():
-    post = my_post[len(my_post) - 1]
-    return {"Details": post}
-
-@app.get("/sqlAlchemy")
-def test_post(db: Session = Depends(get_db)):
-    post = db.query(models.Post).all()
-
-    return {"data": post}
-
-
-
-@app.get("/post/{id}")
-def getdata(id: int, response: Response):
-    cursor.execute("""SELECT * FROM posts WHERE id = %s """, (str(id)))
-    post = cursor.fetchone()
-    # print(test_post)
-    # post = find_post(id) # it is old code with find post function
-    # print(post)
-    if not post:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"post with id {id} was not found")
-        # response.status_code = status.HTTP_404_NOT_FOUND
-        # return {"message": f"post with id {id} was not found"}
-    return {"post details": post}
-
-
-@app.delete("/post/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_post(id: int):
-    cursor.execute("""DELETE FROM posts WHERE id = %s returning *""", (str(id)))
-    deleted_post = cursor.fetchone()
-    conn.commit()
-    # index = find_index_post(id)
-    if deleted_post == None:
-        # if index == None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"post with id {id} was not found")
-    # my_post.pop(index)
-    return {"message": "This post was Successfully Deleted"}
-    # return Response(status_code=status.HTTP_404_NOT_FOUND)
-
-
-@app.put("/post/{id}")
-def update_post(id: int, post: Post):
-    cursor.execute("""UPDATE posts SET title = %s , content =%s, published = %s WHERE id = %s returning *  """,
-                   (post.title, post.content, post.published, str(id)))
-    updated_post = cursor.fetchone()
-    conn.commit()
-    # index = find_index_post(id)
-    if update_post is None:
-        # if index is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"post with id {id} was not found")
-
-    # post_dict = post.dict()
-    # post_dict['id'] = id
-    # my_post[index] = post_dict
-    return {"data": updated_post}
-
-
-
